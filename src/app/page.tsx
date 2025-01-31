@@ -1,101 +1,150 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import { saveToLocalStorage, loadFromLocalStorage } from "@/utils/storage";
+import BookList from "@/ui/BookList";
+import ChapterTabs from "@/ui/ChapterTabs";
+import TextEditor from "@/ui/TextEditor";
+
+interface Chapter {
+  id: number;
+  title: string;
+  content: string;
+}
+
+interface Book {
+  id: number;
+  title: string;
+  chapters: Chapter[];
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [books, setBooks] = useState<Book[]>([]);
+  const [currentBook, setCurrentBook] = useState<Book | null>(null);
+  const [activeChapter, setActiveChapter] = useState<Chapter | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  // Load books from localStorage on page load
+  useEffect(() => {
+    const savedBooks = loadFromLocalStorage("books");
+    if (savedBooks) {
+      setBooks(savedBooks);
+      setCurrentBook(savedBooks[0] || null);
+      setActiveChapter(savedBooks[0]?.chapters[0] || null);
+    }
+  }, []);
+
+  // Save books to localStorage whenever they change
+  useEffect(() => {
+    saveToLocalStorage("books", books);
+  }, [books]);
+
+  const handleAddBook = () => {
+    const newBook: Book = { id: Date.now(), title: `Novo Livro`, chapters: [] };
+    setBooks((prevBooks) => [...prevBooks, newBook]);
+    setCurrentBook(newBook);
+    setActiveChapter(null);
+  };
+
+  const handleAddChapter = () => {
+    if (!currentBook) return;
+
+    const newChapter: Chapter = {
+      id: Date.now(),
+      title: `Novo Capítulo`,
+      content: "",
+    };
+    setCurrentBook((prevBook: any) => {
+      const updatedBook = {
+        ...prevBook,
+        chapters: [...prevBook.chapters, newChapter],
+      };
+      setBooks((prevBooks) =>
+        prevBooks.map((book) =>
+          book.id === updatedBook.id ? updatedBook : book
+        )
+      );
+      return updatedBook;
+    });
+    setActiveChapter(newChapter);
+  };
+
+  const handleRenameBook = (bookId: number, newTitle: string) => {
+    setBooks((prevBooks) =>
+      prevBooks.map((book) =>
+        book.id === bookId ? { ...book, title: newTitle } : book
+      )
+    );
+  };
+
+  const handleRenameChapter = (chapterId: number, newTitle: string) => {
+    setCurrentBook((prevBook: any) => {
+      const updatedChapters = prevBook.chapters.map((chapter: any) =>
+        chapter.id === chapterId ? { ...chapter, title: newTitle } : chapter
+      );
+      const updatedBook = { ...prevBook, chapters: updatedChapters };
+      setBooks((prevBooks) =>
+        prevBooks.map((book) =>
+          book.id === updatedBook.id ? updatedBook : book
+        )
+      );
+      return updatedBook;
+    });
+  };
+
+  const handleTextChange = (newContent: string) => {
+    setActiveChapter((prevChapter: any) => {
+      const updatedChapter = { ...prevChapter, content: newContent };
+      setCurrentBook((prevBook: any) => {
+        const updatedChapters = prevBook.chapters.map((chapter: any) =>
+          chapter.id === updatedChapter.id ? updatedChapter : chapter
+        );
+        const updatedBook = { ...prevBook, chapters: updatedChapters };
+        setBooks((prevBooks) =>
+          prevBooks.map((book) =>
+            book.id === updatedBook.id ? updatedBook : book
+          )
+        );
+        return updatedBook;
+      });
+      return updatedChapter;
+    });
+  };
+
+  return (
+    <div className="flex w-screen h-screen">
+      <BookList
+        books={books}
+        onSelectBook={(book: Book) => {
+          setCurrentBook(book);
+          setActiveChapter(book.chapters[0] || null);
+        }}
+        onAddBook={handleAddBook}
+        onRenameBook={handleRenameBook}
+      />
+
+      <div className="w-full flex flex-col p-4">
+        {currentBook && (
+          <>
+            <ChapterTabs
+              chapters={currentBook.chapters}
+              activeChapter={activeChapter}
+              onSelectChapter={setActiveChapter}
+              onAddChapter={handleAddChapter}
+              onRenameChapter={handleRenameChapter}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+            {activeChapter ? (
+              <TextEditor
+                initialText={activeChapter.content}
+                onTextChange={handleTextChange}
+              />
+            ) : (
+              <div className="p-4">
+                Selecione ou adicione um capítulo para começar a escrever.
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
