@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import "simple-scss-library/dist/global.css";
+import "simple-scss-library/dist/main.css";
 
 export const metadata: Metadata = {
   title: "Text Editor",
