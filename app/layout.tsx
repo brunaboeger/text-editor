@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { dmsans } from "@/ui/styles/fonts";
 import "simple-scss-library/dist/main.css";
 
 export const metadata: Metadata = {
@@ -13,7 +14,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className="w-100vh">{children}</body>
+      <body
+        className={`${dmsans.className} w-100vw h-100vh container p-container`}
+      >
+        {children}
+      </body>
     </html>
   );
 }
